@@ -1,13 +1,24 @@
-name: Level-1-Hello-World
+name: Level-2-Python-CI
 
-on: [push] # 1. 只要有人儲存/推送程式碼，就啟動！
+on: [push]
 
 jobs:
-  my-first-job:
-    runs-on: ubuntu-latest # 2. 跟 GitHub 借一台最新的 Ubuntu Linux 電腦
+  python-test-job:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: 叫雲端電腦跟我打招呼 # 3. 第一步：執行一段簡單的 Linux 指令
+      # 第 1 步：把你倉庫裡的程式碼（包含 test_app.py）下載到這台雲端電腦
+      - name: 1. 下載倉庫程式碼
+        uses: actions/checkout@v4
+
+      # 第 2 步：在雲端電腦安裝 Python 3.11
+      - name: 2. 安裝 Python 環境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 第 3 步：安裝 pytest 測試工具，並自動檢查你的程式碼！
+      - name: 3. 安裝 pytest 並執行自動測試
         run: |
-          echo "🎉 恭喜！你已經成功跑通人生第一個 CI 流程！"
-          date
+          pip install pytest
+          pytest test_app.py
