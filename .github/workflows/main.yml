@@ -1,0 +1,13 @@
+name: Level-1-Hello-World
+
+on: [push] # 1. 只要有人儲存/推送程式碼，就啟動！
+
+jobs:
+  my-first-job:
+    runs-on: ubuntu-latest # 2. 跟 GitHub 借一台最新的 Ubuntu Linux 電腦
+
+    steps:
+      - name: 叫雲端電腦跟我打招呼 # 3. 第一步：執行一段簡單的 Linux 指令
+        run: |
+          echo "🎉 恭喜！你已經成功跑通人生第一個 CI 流程！"
+          date
