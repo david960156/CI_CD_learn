@@ -1,34 +1,63 @@
-name: Level-3-Secrets-And-Artifacts
+name: Level-4-Full-CI-CD-Pipeline
 
 on: [push]
 
-jobs:
-  build-and-package:
-    runs-on: ubuntu-latest
+# 賦予機器人發布網站 (GitHub Pages) 的寫入權限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
+jobs:
+  # ==========================================
+  # 第一站 (CI)：執行 Python 測試 + 自動生成網頁
+  # ==========================================
+  test-and-build:
+    runs-on: ubuntu-latest
     steps:
-      - name: 1. 下載倉庫程式碼
+      - name: 1. 下載程式碼
         uses: actions/checkout@v4
 
-      - name: 2. 安裝 Python 環境
+      - name: 2. 安裝 Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: 3. 執行測試並讀取機密密碼產生報告
-        env:
-          # 從 GitHub 保險箱把密碼安全取出來，放進環境變數
-          SECRET_CODE: ${{ secrets.MY_SECRET_KEY }}
+      - name: 3. 跑 pytest 測試，通過後用 Python 自動生成網站首頁
         run: |
           pip install pytest
           pytest test_app.py
-          echo "嘗試在終端機偷印密碼：$SECRET_CODE"
-          echo "✅ Python 自動化測試 100% 通過！" > report.txt
-          echo "本次建置時間：$(date)" >> report.txt
+          mkdir -p public
+          python -c '
+          import datetime
+          now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+          html = f"""<!DOCTYPE html>
+          <html>
+          <head><meta charset="utf-8"><title>我的 CI/CD 自動化網站</title></head>
+          <body style="font-family: sans-serif; text-align: center; padding-top: 80px; background: #f0fdf4;">
+            <h1 style="color: #166534;">🎉 恭喜！這是透過 CI/CD 全自動部署上線的真實網站！</h1>
+            <p style="font-size: 20px;">✅ Python pytest 自動化測試：<strong>100% 通過</strong></p>
+            <p style="color: #555;">最後自動部署時間：{now}</p>
+          </body>
+          </html>"""
+          open("public/index.html", "w", encoding="utf-8").write(html)
+          '
 
-      # 第 4 步：在雲端電腦銷毀前，把 report.txt 打包上傳！
-      - name: 4. 打包並上傳測試報告 (Artifact)
-        uses: actions/upload-artifact@v4
+      - name: 4. 打包網站檔案準備交給下一站
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: my-test-report
-          path: report.txt
+          path: ./public
+
+  # ==========================================
+  # 第二站 (CD)：只有第一站綠燈，才自動部署上線！
+  # ==========================================
+  deploy-to-web:
+    needs: test-and-build # 🔥 關鍵：必須等第一站 (CI) 成功通過，才准執行！
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 5. 全自動發布到真實網站 (CD)
+        id: deployment
+        uses: actions/deploy-pages@v4
